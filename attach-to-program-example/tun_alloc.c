@@ -7,6 +7,7 @@
 #include <sys/types.h> // ssize_t is defined here
 #include <unistd.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 
 int tun_alloc(char *dev, int flags) {
@@ -56,6 +57,39 @@ int tun_alloc(char *dev, int flags) {
   return fd;
 }
 
+void print_buffer(char *buffer, size_t size, int use_hex) {
+    for (size_t i = 0; i < size; i += 16) {
+        printf("%08lx  ", i);  // Print offset in hex
+        
+        // Print each byte in hex format with spaces in between
+        for (size_t j = 0; j < 16; ++j) {
+            if (i + j < size) {
+                printf("%02X ", buffer[i + j]);
+            } else {
+                printf("   ");  // Fill if line is shorter than 16 bytes
+            }
+
+            if (j == 7) printf(" ");  // Extra space between 8th and 9th byte
+        }
+
+        // If hex mode is disabled, print ASCII representation
+        if (use_hex) {
+            printf(" |");
+            for (size_t j = 0; j < 16; ++j) {
+                if (i + j < size) {
+                    unsigned char ch = buffer[i + j];
+                    printf("%c", isprint(ch) ? ch : '.');  // Print ASCII or '.' for non-printables
+                } else {
+                    printf(" ");  // Fill if line is shorter than 16 bytes
+                }
+            }
+            printf("|");
+        }
+
+        printf("\n");
+    }
+}
+
 int main() {
   printf("Allocating Interface...\n");
   char device_name[] = "mytun";
@@ -92,6 +126,11 @@ int main() {
     }
 
     // finally do something with data on interface!
-    printf("Read %zd bytes from device %s\n", nread, device_name);
+    printf("# Read %zd bytes from device %s\n", nread, device_name);
+    print_buffer(buffer, 50, 1);
+    for (size_t i = 0; i < nread; i++) {
+      printf("%c ", buffer[i]);
+    }
   }
 }
+
