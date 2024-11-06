@@ -90,13 +90,30 @@ void print_buffer(char *buffer, size_t size, int use_hex) {
     }
 }
 
+void write_to_file(char *filename, char *data, size_t size) {
+  FILE *file = fopen(filename, "w");
+  if (file == NULL) {
+      perror("Failed to open file");
+      exit(1);
+  }
+
+  size_t bytes_written = fwrite(data, sizeof(char), size, file);
+    if (bytes_written < size) {
+        perror("Failed to write all data to file");
+        fclose(file);
+        return -1;
+    }
+  fclose(file);
+  return 0;
+}
+
 int main() {
   printf("Allocating Interface...\n");
-  char device_name[] = "mytun";
+  char device_name[] = "mytap";
   //strcpy(device_name, "mytun");
   int tun_fd;
   // this will allocate the tun device
-  tun_fd = tun_alloc(device_name, IFF_TUN);
+  tun_fd = tun_alloc(device_name, IFF_TAP);
   if(tun_fd < 0) {
     perror("Allocating interface");
     exit(1);
@@ -127,10 +144,12 @@ int main() {
 
     // finally do something with data on interface!
     printf("# Read %zd bytes from device %s\n", nread, device_name);
-    print_buffer(buffer, 50, 1);
+    // print_buffer(buffer, 50, 1);
     for (size_t i = 0; i < nread; i++) {
-      printf("%c ", buffer[i]);
+      printf("%01X ", (unsigned char)buffer[i]);
     }
+    printf("\n");
+    write_to_file("output-file.bin", buffer, nread);
   }
 }
 

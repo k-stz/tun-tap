@@ -19,5 +19,5 @@ IP_TUN="10.0.0.1/24"
 IP_TAP="10.1.0.50/24"
 echo "Setting IP of mytun device to: ${IP_TUN}"
 sudo ip addr add "${IP_TUN}" dev mytun
-echo "Setting IP of mytap device to: ${IP}"
+echo "Setting IP of mytap device to: ${IP_TAP}"
 sudo ip addr add "${IP_TAP}" dev mytap
