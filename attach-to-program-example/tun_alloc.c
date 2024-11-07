@@ -101,19 +101,17 @@ void write_to_file(char *filename, char *data, size_t size) {
     if (bytes_written < size) {
         perror("Failed to write all data to file");
         fclose(file);
-        return -1;
+        exit(1);
     }
   fclose(file);
-  return 0;
 }
 
 int main() {
   printf("Allocating Interface...\n");
-  char device_name[] = "mytap";
-  //strcpy(device_name, "mytun");
+  char device_name[] = "mytun";
   int tun_fd;
   // this will allocate the tun device
-  tun_fd = tun_alloc(device_name, IFF_TAP);
+  tun_fd = tun_alloc(device_name, IFF_TUN | IFF_NO_PI);
   if(tun_fd < 0) {
     perror("Allocating interface");
     exit(1);

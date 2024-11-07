@@ -17,7 +17,7 @@ clean veryclean:
 
 # take dump of pure bytes received in TUN/TAP interface and transform 
 # to format that wireshark can import!
-hexdump:
+hex hexdump:
 	od -Ax -tx1 -v output-file.bin > output-file.hex
 
 run:
