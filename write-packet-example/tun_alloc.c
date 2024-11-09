@@ -107,6 +107,7 @@ void write_to_file(char *filename, char *data, size_t size) {
 }
 
 int main() {
+  printf("Writing Packet Example.\n");
   printf("Allocating Interface...\n");
   char device_name[] = "mytun";
   int tun_fd;
@@ -151,6 +152,30 @@ int main() {
     printf("\n");
     write_to_file("output-file.bin", buffer, nread);
     // Now lets do something useful with the packet
+    
+    // buffer[17] = 1; mytap as target doesn't work, not even
+    // from cli, so imply sending packet with other destination 
+    buffer[19] = 42;
+    // lets forward it to another interface!
+    char dst_ip[4];
+    // bytes 16-19 = destination IP
+    memcpy(dst_ip, 16+buffer, 4);
+    printf("dst_ip: ");
+    for (int i=0; i < sizeof(dst_ip); i++ ) {
+      printf("%02x ", dst_ip[i]);
+    }
+    printf("\n");
+
+    printf("Writing to interface...\n");
+    int nwrite = write(tun_fd, buffer, nread);
+    if (nwrite < 0) {
+      perror("writting to interface\n");
+    }
+    printf("packet written!\n");
+    //printf("sleep 10 after writing packet! (could be endless loop!)\n");
+    //sleep(10);
+    // No endless loop occurs!
+    
   }
 }
 
