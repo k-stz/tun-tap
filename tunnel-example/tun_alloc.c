@@ -172,30 +172,33 @@ int main() {
     memcpy(ip_header+16, dst_ip, 4);
     print_buffer(ip_header, sizeof(ip_header), "ip_header new dst_ip");
 
-
     char whole_packet[nread];
     memcpy(whole_packet,buffer, nread);
     print_buffer(whole_packet, sizeof(whole_packet), "whole packet after buffer memcpy into it");
 
-
-    // now lets join ip_header+whole_packet to tunnel the "whole_packet" inside it
-    memcpy(buffer, ip_header, sizeof(ip_header));
     memcpy(buffer+sizeof(ip_header), whole_packet, sizeof(whole_packet));
-    int tunneled_packet_size = sizeof(ip_header) + sizeof(whole_packet); 
+    int tunneled_packet_size = sizeof(ip_header) + sizeof(whole_packet);
+
+    // NOw lets add total size of tunneled packet to ip header
+    ip_header[3] = tunneled_packet_size;
+    // now lets join ip_header+whole_packet to tunnel the "whole_packet" inside it
+
+    memcpy(buffer, ip_header, sizeof(ip_header));
+
 
     printf("Tunneled packet:\n");
     print_buffer(buffer, tunneled_packet_size, "Buffer with tunneled packet");
 
-    // printf("Writing to interface...\n");
-    // int nwrite = write(tun_fd, buffer, nread);
-    // if (nwrite < 0) {
-    //   perror("writing to interface\n");
-    // }
-    //printf("packet written!\n");
+    printf("Writing to interface...\n");
+    int nwrite = write(tun_fd, buffer, tunneled_packet_size);
+    if (nwrite < 0) {
+      perror("writing to interface\n");
+    }
+    printf("tunneled packet written!\n");
     // doesn't seem to cause an endless loop... sleep not needed
     //
-    //printf("sleep 10 after writing packet! (could be endless loop!)\n");
-    //sleep(10);
+    printf("sleep 10 after writing packet! (could be endless loop!)\n");
+    sleep(10);
   }
 }
 
