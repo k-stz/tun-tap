@@ -172,6 +172,10 @@ int main() {
     memcpy(ip_header+16, dst_ip, 4);
     print_buffer(ip_header, sizeof(ip_header), "ip_header new dst_ip");
 
+    // set protocol for outer-most ip header to 4, which indicates "IP in IP" according to RFC 2003
+
+    ip_header[9] = 4;
+
     char whole_packet[nread];
     memcpy(whole_packet,buffer, nread);
     print_buffer(whole_packet, sizeof(whole_packet), "whole packet after buffer memcpy into it");
