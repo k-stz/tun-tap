@@ -57,37 +57,46 @@ int tun_alloc(char *dev, int flags) {
   return fd;
 }
 
-void print_buffer(char *buffer, size_t size, int use_hex) {
-    for (size_t i = 0; i < size; i += 16) {
-        printf("%08lx  ", i);  // Print offset in hex
+// void print_buffer(char *buffer, size_t size, int use_hex) {
+//     for (size_t i = 0; i < size; i += 16) {
+//         printf("%08lx  ", i);  // Print offset in hex
         
-        // Print each byte in hex format with spaces in between
-        for (size_t j = 0; j < 16; ++j) {
-            if (i + j < size) {
-                printf("%02X ", buffer[i + j]);
-            } else {
-                printf("   ");  // Fill if line is shorter than 16 bytes
-            }
+//         // Print each byte in hex format with spaces in between
+//         for (size_t j = 0; j < 16; ++j) {
+//             if (i + j < size) {
+//                 printf("%02X ", buffer[i + j]);
+//             } else {
+//                 printf("   ");  // Fill if line is shorter than 16 bytes
+//             }
 
-            if (j == 7) printf(" ");  // Extra space between 8th and 9th byte
-        }
+//             if (j == 7) printf(" ");  // Extra space between 8th and 9th byte
+//         }
 
-        // If hex mode is disabled, print ASCII representation
-        if (use_hex) {
-            printf(" |");
-            for (size_t j = 0; j < 16; ++j) {
-                if (i + j < size) {
-                    unsigned char ch = buffer[i + j];
-                    printf("%c", isprint(ch) ? ch : '.');  // Print ASCII or '.' for non-printables
-                } else {
-                    printf(" ");  // Fill if line is shorter than 16 bytes
-                }
-            }
-            printf("|");
-        }
+//         // If hex mode is disabled, print ASCII representation
+//         if (use_hex) {
+//             printf(" |");
+//             for (size_t j = 0; j < 16; ++j) {
+//                 if (i + j < size) {
+//                     unsigned char ch = buffer[i + j];
+//                     printf("%c", isprint(ch) ? ch : '.');  // Print ASCII or '.' for non-printables
+//                 } else {
+//                     printf(" ");  // Fill if line is shorter than 16 bytes
+//                 }
+//             }
+//             printf("|");
+//         }
 
-        printf("\n");
-    }
+//         printf("\n");
+//     }
+// }
+
+void print_buffer(char *buffer, int size, char *print_message ) {
+  printf(print_message);
+  printf(":\n");
+  for (int i=0; i < size; i++ ) {
+    printf("%02x ", (unsigned char)buffer[i]);
+  }
+  printf("\n\n");
 }
 
 void write_to_file(char *filename, char *data, size_t size) {
@@ -155,22 +164,34 @@ int main() {
     
     // buffer[17] = 1; mytap as target doesn't work, not even
     // from cli, so imply sending packet with other destination 
-    char dst_ip[] = {10,0,0,42};
-    // lets forward it to another interface!
-    // bytes 16-19 = destination IP
-    memcpy(16+buffer, dst_ip, 4);
-    printf("dst_ip: ");
-    for (int i=0; i < sizeof(dst_ip); i++ ) {
-      printf("%02x ", dst_ip[i]);
-    }
-    printf("\n");
+    char ip_header[20];
+    memcpy(ip_header, buffer, 20);
+    print_buffer(buffer, sizeof(ip_header), "after writing ip_header");
 
-    printf("Writing to interface...\n");
-    int nwrite = write(tun_fd, buffer, nread);
-    if (nwrite < 0) {
-      perror("writing to interface\n");
-    }
-    printf("packet written!\n");
+    char dst_ip[] = {10,0,0,42};
+    memcpy(ip_header+16, dst_ip, 4);
+    print_buffer(ip_header, sizeof(ip_header), "ip_header new dst_ip");
+
+
+    char whole_packet[nread];
+    memcpy(whole_packet,buffer, nread);
+    print_buffer(whole_packet, sizeof(whole_packet), "whole packet after buffer memcpy into it");
+
+
+    // now lets join ip_header+whole_packet to tunnel the "whole_packet" inside it
+    memcpy(buffer, ip_header, sizeof(ip_header));
+    memcpy(buffer+sizeof(ip_header), whole_packet, sizeof(whole_packet));
+    int tunneled_packet_size = sizeof(ip_header) + sizeof(whole_packet); 
+
+    printf("Tunneled packet:\n");
+    print_buffer(buffer, tunneled_packet_size, "Buffer with tunneled packet");
+
+    // printf("Writing to interface...\n");
+    // int nwrite = write(tun_fd, buffer, nread);
+    // if (nwrite < 0) {
+    //   perror("writing to interface\n");
+    // }
+    //printf("packet written!\n");
     // doesn't seem to cause an endless loop... sleep not needed
     //
     //printf("sleep 10 after writing packet! (could be endless loop!)\n");
