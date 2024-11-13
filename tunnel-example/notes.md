@@ -1,3 +1,7 @@
+# How to run example
+1. create tun devices for client and server vpn: `bash create_named_tuntap_device.sh`
+2. run client vpn server: `make vpn_client`
+
 # Tunneling packet example
 Next we try to tunnel IP in IP, by simply copying the IP header, adjusting its dest_ip and then in its payload use the old IP packet.
 
