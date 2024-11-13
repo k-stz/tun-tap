@@ -49,3 +49,10 @@ So lets use "4" in the protocol field. Now when we encapculate an IP packet in i
      - in its destination packet the original IP is written (here 10.0.0.2)
      - while in the encapsulating IP packet uses the hand-edited ip (that can now point to a VPN-Server doing the unpacking) here to the ip 10.0.0.42
      - It's nested payload is now recognized as just a simple ICMP (packet was generated using a `ping 10.0.0.2`)
+
+# Problem: Packet is not forwarded
+After setting up vpn_client to encapsulate incoming packets and sending them to mytun2, by using an ip in the the subnet of mytun2 as the destination ip (e.g. 10.0.2.33), it is not forwarded at all, no packet reaches it.
+
+When directing pinging mytun2 (10.0.2.33) the packet gets reached  though.
+Why is that? Why can't we emit packets from mytun to mytun2?
+

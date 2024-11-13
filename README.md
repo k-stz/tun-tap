@@ -8,6 +8,22 @@ Dive into TUN/TAP virtual network devices. Unlike regular network devices, which
 They are, for example, the basis for VPN client/server implementation, allowing packets routed to them to be send to a userspace program, thus enabling tunneling needed for a VPN implementation.
 - Source: "VPNs, Proxies and Secure Tunnels Explained (Deepdive)" (2023) by liveoverflow https://www.youtube.com/watch?v=32KKwgF67Ho 
 
+# "Tunneling" definition
+Source: RFC 2003: "IP Encapsulation within IP", Section "1. Introduction" (1996)
+>  
+   This document specifies a method by which an IP datagram may be
+   encapsulated (carried as payload) within an IP datagram.Encapsulation is suggested as a means to alter the normal IP routing
+   for datagrams, by delivering them to an intermediate destination that
+   would otherwise not be selected based on the (network part of the) IP
+   Destination Address field in the original IP header.  Once the
+   encapsulated datagram arrives at this intermediate destination node,
+   it is decapsulated, yielding the original IP datagram, which is then
+   delivered to the destination indicated by the original Destination
+   Address field.  This use of encapsulation and decapsulation of a
+   datagram is frequently referred to as **"tunneling"** the datagram, and
+   the encapsulator and decapsulator are then considered to be the
+   "endpoints" of the tunnel.
+
 # Instruction
 ## Create TUN/TAP interface
 Create persistent tun/tap virtual network interface named `mytun`. Then afterwards list all network interfaces with `ip addr` and find the newly created `mytun` virtual network interface:
