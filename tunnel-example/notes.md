@@ -56,3 +56,10 @@ After setting up vpn_client to encapsulate incoming packets and sending them to 
 When directing pinging mytun2 (10.0.2.33) the packet gets reached  though.
 Why is that? Why can't we emit packets from mytun to mytun2?
 
+## Solution: IP Header Checksum!
+That's because the IP Header checksum needs to be calculated when you change anything in the header. You can see that the manipulated package (used for encapsulation) has the wrong in wireshark (needs to be enabled for the IP protocol):
+![Wireshark output showing wrong checksum in IP packet](./pictures/ip-header-checksum-wrong.png)
+
+Next: So lets calculate the right header..
+
+## Show drop packages due to wrong IP header in kernelImage showing

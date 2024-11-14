@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <arpa/inet.h>
+
 
 
 int tun_alloc(char *dev, int flags) {
@@ -115,6 +117,46 @@ void write_to_file(char *filename, char *data, size_t size) {
   fclose(file);
 }
 
+int cwrite(int fd, char *buf, int n){
+  
+  int nwrite;
+
+  if((nwrite=write(fd, buf, n)) < 0){
+    perror("Writing data");
+    exit(1);
+  }
+  return nwrite;
+}
+
+// modified from: https://gist.github.com/david-hoze/0c7021434796997a4ca42d7731a7073a
+/* Compute checksum for count bytes starting at addr, using one's complement of one's complement sum*/
+static unsigned short compute_checksum(unsigned short *addr, unsigned int count) {
+  register unsigned long sum = 0;
+  while (count > 1) {
+    sum += * addr++;
+    count -= 2;
+  }
+  //if any bytes left, pad the bytes and add
+  if(count > 0) {
+    sum += ((*addr)&htons(0xFF00));
+  }
+  //Fold sum to 16 bits: add carrier to result
+  while (sum>>16) {
+      sum = (sum & 0xffff) + (sum >> 16);
+  }
+  //one's complement
+  sum = ~sum;
+  return ((unsigned short)sum);
+}
+
+void update_ip_checksum(char *ip_header) {
+  int checksum_offset = 10; // bytes 10+11 to be exact
+  unsigned short sum = compute_checksum((unsigned short*)ip_header,20); 
+  ip_header[10] = 0;
+  ip_header[11] = 0;
+  printf("calculated ip checksum sum: %#06x\n", sum);
+}
+
 int main() {
   printf("Writing Packet Example.\n");
   printf("Allocating Interface...\n");
@@ -159,7 +201,7 @@ int main() {
       printf("%01X ", (unsigned char)buffer[i]);
     }
     printf("\n");
-    write_to_file("output-file.bin", buffer, nread);
+    write_to_file("output-client.bin", buffer, nread);
     // Now lets do something useful with the packet
     
     // buffer[17] = 1; mytap as target doesn't work, not even
@@ -168,12 +210,14 @@ int main() {
     memcpy(ip_header, buffer, 20);
     print_buffer(buffer, sizeof(ip_header), "after writing ip_header");
 
-    char dst_ip[] = {10,0,0,42}; // TODO: update to ip in vpn_servers subnet!
+    char dst_ip[] = {10,0,2,33}; // 10.0.2.0/24 is subnet of vpn-server!
     memcpy(ip_header+16, dst_ip, 4);
+    memcpy(buffer+16, dst_ip, 4);
+    
     print_buffer(ip_header, sizeof(ip_header), "ip_header new dst_ip");
 
-    // set protocol for outer-most ip header to 4, which indicates "IP in IP" according to RFC 2003
-
+    // set protocol for outer-most encapsulating ip-packet to 4, 
+    // which indicates "IP in IP" according to RFC 2003
     ip_header[9] = 4;
 
     char whole_packet[nread];
@@ -183,26 +227,34 @@ int main() {
     memcpy(buffer+sizeof(ip_header), whole_packet, sizeof(whole_packet));
     int tunneled_packet_size = sizeof(ip_header) + sizeof(whole_packet);
 
-    // NOw lets add total size of tunneled packet to ip header
+    //  add total size of tunneled packet to ip header
     ip_header[3] = tunneled_packet_size;
-    // now lets join ip_header+whole_packet to tunnel the "whole_packet" inside it
 
+    // Recalculate IP Header Checksum
+    // Very important: now that we're done tampering with the IP haeder,
+    // we need to calcluate its error-checking checksum header, else the
+    // packet will be silently dropped by the kernel routing!
+    update_ip_checksum(ip_header);
+
+    // next join ip_header+whole_packet to encapsulate "whole_packet" inside it
     memcpy(buffer, ip_header, sizeof(ip_header));
 
 
-    printf("Tunneled packet:\n");
-    print_buffer(buffer, tunneled_packet_size, "Buffer with tunneled packet");
+    // printf("Tunneled packet:\n");
+    // print_buffer(buffer, tunneled_packet_size, "Buffer with tunneled packet");
 
-    printf("Writing to interface...\n");
-    int nwrite = write(tun_fd, buffer, tunneled_packet_size);
+    // printf("Writing to interface...\n");
+    // int nwrite = cwrite(tun_fd, buffer, tunneled_packet_size);
+    int nwrite = cwrite(tun_fd, buffer, nread);
+    
     if (nwrite < 0) {
       perror("writing to interface\n");
     }
-    printf("tunneled packet written!\n");
-    // doesn't seem to cause an endless loop... sleep not needed
-    //
-    printf("sleep 10 after writing packet! (could be endless loop!)\n");
-    sleep(10);
+    // printf("tunneled packet written!\n");
+    // // doesn't seem to cause an endless loop... sleep not needed
+    // //
+    // printf("sleep 10 after writing packet! (could be endless loop!)\n");
+    // sleep(10);
   }
 }
 
