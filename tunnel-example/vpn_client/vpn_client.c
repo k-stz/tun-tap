@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <arpa/inet.h>
+#include <assert.h>
 
 
 
@@ -157,7 +158,66 @@ void update_ip_checksum(char *ip_header) {
   printf("calculated ip checksum sum: %#06x\n", sum);
 }
 
+int write_test_packet(char *buffer) {
+    char working_icmp_packet[] = { 0x45, 0x0, 0x0, 0x54, 0x64, 0xDE, 0x40, 0x0, 0x40, 
+    0x1, 0xBF, 0xA9, 0xA, 0x0, 0x0, 0x1, 0xA, 0x0, 0x2, 0x21, 0x8, 0x0, 0xE6, 0x12, 0x0, 
+    0xA7, 0x0, 0x1, 0x6, 0xB, 0x37, 0x67, 0x0, 0x0, 0x0, 0x0, 0x8, 0x0, 0xD, 0x0, 0x0, 
+    0x0, 0x0, 0x0, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 
+    0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 
+    0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37};
+    int size = sizeof(working_icmp_packet);
+    printf("Writing test packet with length: %d\n", size);
+    memcpy(buffer, working_icmp_packet, sizeof(working_icmp_packet));
+    return size;
+}
+
+u_short calc_ip_checksum() {
+// example ip header
+  // checksum is = 0xCD 0x50 
+  char header[] = { 0x45, 0x00, 0x00, 0x54, 0x59, 0x56, 0x40, 0x00, 0x40, 
+  0x01, 0xcd, 0x50, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x00, 0x02 };
+  // checksum is = 0xCD 0x50 
+  
+  print_buffer(header, sizeof(header), "Header initially");
+  // length is the last 4 bits of first byte, each representing 16bit 
+  // according to IP header RFC
+  int header_len = (header[0] & 0x0F) * 4;
+  printf("header_len %d\n", header_len);
+  assert(sizeof(header) == header_len);
+  // Padding: ip header is muliple of 16bits, if not padd with 0xFF
+  // if (header_len % 2 != 0) {
+  //   printf("Padding ip_header for checksum calc\n");
+  // }
+  // delete checksum
+  header[10] = 0x00; header[11] = 0x00;
+  print_buffer(header, sizeof(header), "checksum cleared");
+  // Sum all 2xbytes in header
+  unsigned short * ip_short_header = ((unsigned short *)header);
+  int sum = 0;
+  for (int i = 0; i < header_len / 2; i++) {
+    short two_byte = ntohs(ip_short_header[i]);
+    printf("i: %d short: %04x\n", i, two_byte);
+    sum += two_byte;
+  }
+  // at this point sum contains carry out bits outside the 16bit frame
+  // adding sum to the checksum must result in zero!
+  sum = (sum >> 16) + (sum & 0xffff);
+  // in case this addition created carry outs again, add them back in
+  sum = (sum >> 16) + sum;
+  u_short checksum = ~sum; // two's complement
+  printf("sum + checksum = %04x \n", sum + 0xCD50); 
+  //sum = ~sum; // <- one's complement of the sum of all shorts in order = ip checksum
+  printf("checksum: %04x\n == 0xCD 0x50 (<- should be)\n", checksum);
+  return checksum;
+
+}
+
 int main() {
+  
+  calc_ip_checksum();
+}
+
+int old_main() {
   printf("Writing Packet Example.\n");
   printf("Allocating Interface...\n");
   char device_name[] = "mytun";
@@ -243,10 +303,15 @@ int main() {
     // printf("Tunneled packet:\n");
     // print_buffer(buffer, tunneled_packet_size, "Buffer with tunneled packet");
 
-    // printf("Writing to interface...\n");
-    // int nwrite = cwrite(tun_fd, buffer, tunneled_packet_size);
-    int nwrite = cwrite(tun_fd, buffer, nread);
+    //Write hard coded packet instead
+    int size = write_test_packet(buffer);
+    print_buffer(buffer, size, "Test packet now in buffer!");
+
+    printf("Writing to interface...\n");
+    //int nwrite = cwrite(tun_fd, buffer, tunneled_packet_size);
+    int nwrite = cwrite(tun_fd, buffer, size);
     
+  
     if (nwrite < 0) {
       perror("writing to interface\n");
     }
