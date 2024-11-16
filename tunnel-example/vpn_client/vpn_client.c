@@ -171,20 +171,17 @@ int write_test_packet(char *buffer) {
     return size;
 }
 
-u_short calc_ip_checksum() {
-// example ip header
-  // checksum is = 0xCD 0x50 
-  char header[] = { 0x45, 0x00, 0x00, 0x54, 0x59, 0x56, 0x40, 0x00, 0x40, 
-  0x01, 0xcd, 0x50, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x00, 0x02 };
-  // checksum is = 0xCD 0x50 
+
+
+u_short calc_ip_checksum(char *header) {
   
-  print_buffer(header, sizeof(header), "Header initially");
-  // length is the last 4 bits of first byte, each representing 16bit 
+    // length is the last 4 bits of first byte, each representing 16bit 
   // according to IP header RFC
   int header_len = (header[0] & 0x0F) * 4;
   printf("header_len %d\n", header_len);
-  assert(sizeof(header) == header_len);
-  // Padding: ip header is muliple of 16bits, if not padd with 0xFF
+  // careful, when fully implementing padding, you cant work pass-by-reference
+  // we need to create a copy of the ip_header
+  // Padding: ip header is muliple of 16bits, if not pad with 0xFF
   // if (header_len % 2 != 0) {
   //   printf("Padding ip_header for checksum calc\n");
   // }
@@ -205,16 +202,24 @@ u_short calc_ip_checksum() {
   // in case this addition created carry outs again, add them back in
   sum = (sum >> 16) + sum;
   u_short checksum = ~sum; // two's complement
-  printf("sum + checksum = %04x \n", sum + 0xCD50); 
+  printf("%04x(sum)  + %04x(checksum) = %04x \n", sum, checksum, sum + checksum); 
   //sum = ~sum; // <- one's complement of the sum of all shorts in order = ip checksum
-  printf("checksum: %04x\n == 0xCD 0x50 (<- should be)\n", checksum);
   return checksum;
 
 }
 
+void test_calc_ip_checksum() {
+  // example ip header
+  // checksum is = 0xCD 0x50 
+  char header[] = { 0x45, 0x00, 0x00, 0x54, 0x59, 0x56, 0x40, 0x00, 0x40, 
+  0x01, 0xcd, 0x50, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x00, 0x02 };
+  u_short checksum = calc_ip_checksum(header);
+  printf("calculated checksum: 0x%04X  \nvalidation checksum: 0xCD50 (must be equal)\n", checksum);
+}
+
 int main() {
   
-  calc_ip_checksum();
+  test_calc_ip_checksum();
 }
 
 int old_main() {
