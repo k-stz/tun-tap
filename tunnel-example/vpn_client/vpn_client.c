@@ -111,27 +111,27 @@ int cwrite(int fd, char *buf, int n){
 // }
 
 
-// /* Compute checksum for count bytes starting at addr, using one's complement of one's complement sum*/
-// static unsigned short compute_checksum(unsigned short *addr) {
-//   uint count = 20;
-//   register unsigned int sum = 0;
-//   while (count > 1) {
-//     sum += * addr++;
-//     count -= 2;
-//   }
-//   printf("osum after loop %#08x\n", sum);
-//   //if any bytes left, pad the bytes and add
-//   if(count > 0) {
-//     sum += ((*addr)&htons(0xFF00));
-//   }
-//   //Fold sum to 16 bits: add carrier to result
-//   while (sum>>16) {
-//       sum = (sum & 0xffff) + (sum >> 16);
-//   }
-//   //one's complement
-//   sum = ~sum;
-//   return ((unsigned short)sum);
-// }
+/* Compute checksum for count bytes starting at addr, using one's complement of one's complement sum*/
+static unsigned short compute_checksum(unsigned short *addr) {
+  uint count = 20;
+  register unsigned int sum = 0;
+  while (count > 1) {
+    sum += * addr++;
+    count -= 2;
+  }
+  printf("osum after loop %#08x\n", sum);
+  //if any bytes left, pad the bytes and add
+  if(count > 0) {
+    sum += ((*addr)&htons(0xFF00));
+  }
+  //Fold sum to 16 bits: add carrier to result
+  while (sum>>16) {
+      sum = (sum & 0xffff) + (sum >> 16);
+  }
+  //one's complement
+  sum = ~sum;
+  return ((unsigned short)sum);
+}
 
 
 u_short calc_ip_checksum(char *header) {
@@ -150,7 +150,7 @@ u_short calc_ip_checksum(char *header) {
   print_buffer(header, header_len, "checksum cleared");
   // Sum all 2xbytes in header
   unsigned short * ip_short_header = ((unsigned short *)header);
-  int sum = 0;
+  uint sum = 0;
   for (int i = 0; i < header_len/2; i++) {
     short two_byte = ip_short_header[i];
     //printf("i: %d short: %04x\n", i, two_byte);
@@ -169,16 +169,11 @@ u_short calc_ip_checksum(char *header) {
   return checksum;
 }
 
-void test_calc_ip_checksum() {
-  // example ip header
-  // checksum is = 0xCD 0x50 
-  char header[] = { 0x45, 0x00, 0x00, 0x54, 0x59, 0x56, 0x40, 0x00, 0x40, 
-  0x01, 0xcd, 0x50, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x00, 0x02 };
-  u_short checksum = calc_ip_checksum(header);
-  printf("calculated checksum: 0x%04X  \nvalidation checksum: 0xCD50 (must be equal)\n", checksum);
-}
+
 
 void update_ip_checksum(char *ip_header) {
+  char original_header[20];
+  memcpy(original_header, ip_header, 20);
   int checksum_offset = 10; // bytes 10+11 to be exact
   // this works:
   ushort * checksum_addr = (ushort *) (ip_header + checksum_offset);
@@ -190,10 +185,34 @@ void update_ip_checksum(char *ip_header) {
 
   u_short sum = calc_ip_checksum(ip_header);
   *checksum_addr = sum;
+  original_header[10] = 0;original_header[11] = 0; 
+  int osum = compute_checksum((ushort *) original_header);
+  if (osum != sum) {
+    print_buffer(original_header, 20, "checksum calc wrong for header");
+  }
+  printf("calculated ip checksum Osum: %#04x\n", osum);
   printf("calculated ip checksum sum: %#04x\n", sum);
 }
 
-int test_ip_checksum_calc_main() {
+int main() {
+  // checksum is = 0xCD 0x50
+  u_short correct_checksum1 = 0x50CD;
+  char header[] = { 0x45, 0x00, 0x00, 0x54, 0x59, 0x56, 0x40, 0x00, 0x40, 
+  0x01, 0xcd, 0x50, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x00, 0x02 };
+  // correct checksum: 0xa4f7
+  u_short correct_checksum2 = 0xa4f7; 
+  char header2[] = { 0x45, 0x00, 0x00, 0x68, 0x2c, 0xcc, 0x40, 0x00, 0x40, 0x04, 0x00, 
+  0x00, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x02, 0x21 };
+
+  header[10] = 0; header[11] = 0;
+  u_short checksum = calc_ip_checksum(header);
+  printf("test1: 0x%04X == 0x%04X %s\n", checksum, correct_checksum1, (checksum == correct_checksum1) ? "true" : "false");
+
+
+  header2[10] = 0; header2[11] = 0;
+  checksum = calc_ip_checksum(header2);
+  printf("calculated checksum: 0x%04X  \nvalidation checksum: 0x%04X (must be equal)\n", checksum, 0xa4f7);
+
   u_short correct_checksum = 0x6725;
   char ip_header[] = {0x45, 0x00, 0x00, 0x68, 0xbd, 0x4b, 0x40, 0x00, 0x40, 0x04, 
   0x67, 0x26, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x02, 0x21};
@@ -203,7 +222,7 @@ int test_ip_checksum_calc_main() {
   return 0;
 }
 
-int main() {
+int old_main() {
   printf("Writing Packet Example.\n");
   printf("Allocating Interface...\n");
   char device_name[] = "mytun";
