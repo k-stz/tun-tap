@@ -1,3 +1,9 @@
 tun_alloc
 *.bin
 *.hex
+
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
