@@ -194,7 +194,7 @@ void update_ip_checksum(char *ip_header) {
     print_buffer(original_header, 20, "checksum calc wrong for header");
   }
   printf("calculated ip checksum Osum: %#04x\n", osum);
-  printf("calculated ip checksum sum: %#04x\n", sum);
+  printf("calculated ip checksum mysum: %#04x\n", sum);
 }
 
 int test_ip_checksum_main() {

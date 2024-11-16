@@ -20,6 +20,12 @@ clean veryclean:
 hex hexdump:
 	od -Ax -tx1 -v output-client.bin > output-client.hex
 
+removelocalroute:
+	sudo ip route del local 10.0.0.1 dev mytun
+
+addlocalroute:	
+	sudo ip route add to local 10.0.0.1 dev mytun
+
 run:
 	./vpn_client
 

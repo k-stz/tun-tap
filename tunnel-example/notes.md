@@ -56,10 +56,34 @@ After setting up vpn_client to encapsulate incoming packets and sending them to 
 When directing pinging mytun2 (10.0.2.33) the packet gets reached  though.
 Why is that? Why can't we emit packets from mytun to mytun2?
 
-## Solution: IP Header Checksum!
-That's because the IP Header checksum needs to be calculated when you change anything in the header. You can see that the manipulated package (used for encapsulation) has the wrong in wireshark (needs to be enabled for the IP protocol):
+## Solution: IP Header Checksum?
+The IP Header checksum needs to be calculated when you change anything in the header. You can see that the manipulated package (used for encapsulation) has the wrong in wireshark (needs to be enabled for the IP protocol):
 ![Wireshark output showing wrong checksum in IP packet](./pictures/ip-header-checksum-wrong.png)
 
-Next: So lets calculate the right header..
+But after we recalculate the header (needs to be done always, becuase of another field called "identity" which changes even for identical ping request) it sadly still doesn't deliver the package to the other mytun2 device!
 
-## Show drop packages due to wrong IP header in kernelImage showing
+# mytun -> mytun2; Still no packet!
+**Problem**: Even with a correct IP checksum, the IP packets are still not delivered to mytun2 when send from mytun.
+
+Have you wondered, why when pinging the tun devices on their own ip, the packet wouldn't show? Thats because `ip route` isn't the full story regarding routing, the kernel has also a local routing table, for its own devices
+
+## Solution: Local routing table
+When disabling the local routing entry with
+`sudo ip route del local 10.0.0.1` tunneling finally works, this is a quirk only needed when running when client and host are both on the same machine.
+
+Now you can also ping 10.0.0.1 directly and this ip-ICMP packet will reach the mytun interface! Also it will finally tunnel packets to mytun2!
+
+Usually the local routing table is maintained by the kernel automatically and shouldn't be thus tampered with...
+Readd it with:
+`sudo ip route 
+add to local 10.0.0.1 dev mytun`
+
+Finally it works!
+
+# Conclusion (Debugging)
+After careful tests both of these aspects were necessary to deliver the packet from a TUN device to another (`mytun`->`mytun2`):
+- recalculate IP header chechsum field => else packet gets sielently dropped!
+- remove local kernel routing table for the sending TUN device
+
+# Show IP packets getting dropped by kernel due to wrong checksum!
+TODO
