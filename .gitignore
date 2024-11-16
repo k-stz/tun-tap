@@ -1,8 +1,11 @@
-# Ignore all
-*
 
+# ignore all files without extensions
+# ergo match "filewith.<some-extensions>" only
+#[^\.]*
+
+# ignore specific dirs
+**/bin/*
+
+# ignore specific extensions
 *.bin
 *.hex
-
-# Unignore all with extensions
-!*.*

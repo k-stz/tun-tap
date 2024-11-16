@@ -8,7 +8,8 @@ default: all
 all: Hello run
 
 Hello: vpn_server.c 
-	$(CC) $(CFLAGS) -o vpn_server vpn_server.c
+	mkdir -p bin
+	$(CC) $(CFLAGS) -o bin/vpn_server vpn_server.c
 
 clean veryclean:
 	$(RM) vpn_server
@@ -21,5 +22,5 @@ hex hexdump:
 	od -Ax -tx1 -v output-server.bin > output-server.hex
 
 run:
-	./vpn_server
+	./bin/vpn_server
 

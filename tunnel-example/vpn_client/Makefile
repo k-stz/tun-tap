@@ -7,11 +7,12 @@ default: all
 
 all: Hello run
 
-Hello: vpn_client.c 
-	$(CC) $(CFLAGS) -o vpn_client vpn_client.c
+Hello: vpn_client.c
+	mkdir -p bin
+	$(CC) $(CFLAGS) -o bin/vpn_client vpn_client.c
 
 clean veryclean:
-	$(RM) vpn_client
+	$(RM) bin/vpn_client
 	sudo ip tuntap del dev mytun mode tun
 	sudo ip tuntap del dev mytap mode tap
 
@@ -27,5 +28,5 @@ addlocalroute:
 	sudo ip route add to local 10.0.0.1 dev mytun
 
 run:
-	./vpn_client
+	./bin/vpn_client
 
