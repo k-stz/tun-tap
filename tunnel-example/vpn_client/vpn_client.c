@@ -115,11 +115,13 @@ int cwrite(int fd, char *buf, int n){
 static unsigned short compute_checksum(unsigned short *addr) {
   uint count = 20;
   register unsigned int sum = 0;
+  //print_buffer((char *) addr, 20, "osum buffer");
   while (count > 1) {
+    //printf("osum i: %d short: %04x sum: %08x\n", count, *addr, sum);
     sum += * addr++;
     count -= 2;
   }
-  printf("osum after loop %#08x\n", sum);
+  //printf("osum after loop %#08x\n", sum);
   //if any bytes left, pad the bytes and add
   if(count > 0) {
     sum += ((*addr)&htons(0xFF00));
@@ -147,15 +149,16 @@ u_short calc_ip_checksum(char *header) {
   // }
   // delete checksum
   header[10] = 0x00; header[11] = 0x00;
-  print_buffer(header, header_len, "checksum cleared");
+  //print_buffer(header, header_len, "checksum cleared");
   // Sum all 2xbytes in header
   unsigned short * ip_short_header = ((unsigned short *)header);
-  uint sum = 0;
+  register uint sum = 0;
   for (int i = 0; i < header_len/2; i++) {
-    short two_byte = ip_short_header[i];
-    //printf("i: %d short: %04x\n", i, two_byte);
+    u_short two_byte = ip_short_header[i];
+    //printf("sum i: %d short: %04x sum: %08x\n", i, two_byte, sum);
     sum += two_byte;
   }
+  printf("sum after loop %#08x\n", sum);
   // at this point sum contains carry out bits outside the 16bit frame
   // adding sum to the checksum must result in zero!
   sum = (sum >> 16) + (sum & 0xffff);
@@ -194,7 +197,7 @@ void update_ip_checksum(char *ip_header) {
   printf("calculated ip checksum sum: %#04x\n", sum);
 }
 
-int main() {
+int test_ip_checksum_main() {
   // checksum is = 0xCD 0x50
   u_short correct_checksum1 = 0x50CD;
   char header[] = { 0x45, 0x00, 0x00, 0x54, 0x59, 0x56, 0x40, 0x00, 0x40, 
@@ -204,25 +207,34 @@ int main() {
   char header2[] = { 0x45, 0x00, 0x00, 0x68, 0x2c, 0xcc, 0x40, 0x00, 0x40, 0x04, 0x00, 
   0x00, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x02, 0x21 };
 
+  char header3[] = { 0x45, 0x00, 0x00, 0x68, 0x2c, 0xcc, 0x40, 0x00, 0x40, 0x04, 0x00, 
+  0x00, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x02, 0x21 };
+  header3[10] = 0; header3[11] = 0;
+
+  u_short checksum;
   header[10] = 0; header[11] = 0;
-  u_short checksum = calc_ip_checksum(header);
+  checksum = calc_ip_checksum(header);
   printf("test1: 0x%04X == 0x%04X %s\n", checksum, correct_checksum1, (checksum == correct_checksum1) ? "true" : "false");
 
 
   header2[10] = 0; header2[11] = 0;
   checksum = calc_ip_checksum(header2);
-  printf("calculated checksum: 0x%04X  \nvalidation checksum: 0x%04X (must be equal)\n", checksum, 0xa4f7);
+  printf("test2: 0x%04X == 0x%04X %s\n", checksum, correct_checksum2, (checksum == correct_checksum2) ? "true" : "false");
+  checksum = compute_checksum((u_short *) header3);
+  printf("test3: 0x%04X == 0x%04X %s\n", checksum, correct_checksum2, (checksum == correct_checksum2) ? "true" : "false");
+
+
 
   u_short correct_checksum = 0x6725;
-  char ip_header[] = {0x45, 0x00, 0x00, 0x68, 0xbd, 0x4b, 0x40, 0x00, 0x40, 0x04, 
-  0x67, 0x26, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x02, 0x21};
-  int sum = calc_ip_checksum(ip_header);
-  printf("final sum: %#06x\n", sum);
+  //char ip_header[] = {0x45, 0x00, 0x00, 0x68, 0xbd, 0x4b, 0x40, 0x00, 0x40, 0x04, 
+  //0x67, 0x26, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00, 0x02, 0x21};
+  //int sum = calc_ip_checksum(ip_header);
+  //printf("final sum: %#06x\n", sum);
   //printf("final osum %#06x\n:", compute_checksum((unsigned short *) ip_header));
   return 0;
 }
 
-int old_main() {
+int main() {
   printf("Writing Packet Example.\n");
   printf("Allocating Interface...\n");
   char device_name[] = "mytun";
