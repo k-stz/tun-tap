@@ -78,7 +78,12 @@ Readd it with:
 `sudo ip route 
 add to local 10.0.0.1 dev mytun`
 
-Finally it works!
+Finally it works! ... except it doesn't
+
+## Reverse Path filtering?
+On the next day it didn't work anymore, I remember tinkering with the variable: `sysctl -a | grep net.ipv4.conf.mytun.rp_filter = 0`
+
+What does it mean?
 
 # Conclusion (Debugging)
 After careful tests both of these aspects were necessary to deliver the packet from a TUN device to another (`mytun`->`mytun2`):
@@ -86,4 +91,19 @@ After careful tests both of these aspects were necessary to deliver the packet f
 - remove local kernel routing table for the sending TUN device
 
 # Show IP packets getting dropped by kernel due to wrong checksum!
-TODO
+Source:
+- https://developers.redhat.com/articles/2023/07/19/how-retrieve-packet-drop-reasons-linux-kernel
+Install cli `dropwatch`, run and configure it interactively:
+
+```sh
+sudo dropwatch
+nitializing null lookup method
+dropwatch> set alertmode packet
+Setting alert mode
+Alert mode successfully set
+dropwatch> start
+Enabling monitoring...
+Kernel monitoring activated.
+Issue Ctrl-C to stop monitoring
+```
+
