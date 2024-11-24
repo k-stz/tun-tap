@@ -1,3 +1,6 @@
+# UPDATE: 
+Never got this stably to work without excessive misconfiguration of the machine. See "Conclusions"
+
 # How to run example
 1. create tun devices for client and server vpn: `bash create_named_tuntap_device.sh`
 2. run client vpn server: `make vpn_client`
@@ -85,7 +88,21 @@ On the next day it didn't work anymore, I remember tinkering with the variable: 
 
 What does it mean?
 
-# Conclusion (Debugging)
+"When the kernel sees packets coming in that it sent out, it concludes there must be a routing loop somewhere in the network and to prevent the network from being flooded drops the packets."
+
+Where does the kernel see packets coming in? In our vpn-client tunneling to vpn-server ip segment example, it sees the packet initially comming in from the `ping`-command process which is destined for the subnet of `mytun` and routes it there. The `mytun` backing program, `vpn-client`, encapsulated it with a destination address to mytun2 ip-subnet.
+
+I don't think thats what happens here, as the encapsulation creates a new packet, and why wouldn't one TUN-device not be able to send packets to another?
+But maybe because we're setting IP-in-IP in the protocol header, wireshark at least shows both the incoming and afterwards encapsulated packet using the same source/dest ips in its overview... so lets try to change the protocol.
+
+TODO:
+- Anyway this behaviour, i.e. dropping packets when they are destined for a interface on the same machine only to show up again is an indication of a routing issue and dropped by ther kernel. Its controlled by the kernel tunable `rp_filter`
+
+
+# Conclusion (Debugging) it doesnn't work with IP-Segment-VPN-Tunneling
+UPDATE: no it doesn't work, it probably work after extensive fiddling around with the tunables and the special local routing table, which is not desireable, this should work more generally. Also when testing with two machines, the packet would make it to the main interface of th emachine but never be routed from their to the tun device. ICMP request would be answered by the kernel on the incoming device, and never routed to the TUN device. When an IP in the subnet was used, that is not assigned, the sneder would cry out ARP-who-is requests and never get an answer. Spoofing the arp entry wouldn't deliver the frame.
+So this approach will be given up in favor of a TCP-connection between client and server where we will pass a raw IP-Packet in the payload of a stable client-server connection. This then obviously will work more general purpose
+
 After careful tests both of these aspects were necessary to deliver the packet from a TUN device to another (`mytun`->`mytun2`):
 - recalculate IP header chechsum field => else packet gets sielently dropped!
 - remove local kernel routing table for the sending TUN device
@@ -106,6 +123,16 @@ Enabling monitoring...
 Kernel monitoring activated.
 Issue Ctrl-C to stop monitoring
 ```
+
+# More debugging
+
+## Dropwatch: Dropreason explanation
+You can lookup the meaning behind the drop reasons from the
+comments in the code here:
+- https://github.com/torvalds/linux/blob/master/include/net/dropreason-core.h#L166
+
+For example the above points to dropreason `IP_NOPROTO`, which apparently means IP is not supported.
+
 ## How to show packet stats for an interface?
 `ip -stats link show <interface>`
 
@@ -121,8 +148,10 @@ Nov 22 20:55:15 sao kernel: IPv4: martian source 10.0.2.33 from 10.0.0.1, on dev
 Nov 22 20:55:16 sao kernel: IPv4: martian source 10.0.2.33 from 10.0.0.1, on dev mytun
 Nov 22 20:55:18 sao kernel: IPv4: martian source 10.0.2.33 from 10.0.0.1, on dev mytun
 Nov 22 20:55:19 sao kernel: IPv4: martian source 10.0.2.33 from 10.0.0.1, on dev mytun
-
 ```
+Anyway after changing the source ip to something publicly routable like `200.1.2.3`, we don't see martian packets anymore but the packet still get dropped with reason:
+
+`IP_NOPROTO`
 
 
 ## drop reason: `NETFILTER_DROP`

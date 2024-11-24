@@ -287,10 +287,14 @@ int main() {
     memcpy(encapsulating_ip_header, buffer, 20);
     print_buffer(buffer, sizeof(encapsulating_ip_header), "after writing encapsulating_ip_header");
 
-    char dst_ip[] = {10,0,2,33}; // 10.0.2.0/24 is subnet of vpn-server!
+    char dst_ip[] = {10,0,2,1}; // 10.0.2.0/24 is subnet of vpn-server!
     memcpy(encapsulating_ip_header+16, dst_ip, 4);
-    encapsulating_ip_header[9] = 4;
+    // encapsulating_ip_header[9] = 4;
     
+    char src_ip[] = {201,2,2,2}; // so no drop due to martian packet
+
+    memcpy(encapsulating_ip_header+12, src_ip, 4);
+
     // set protocol for outer-most encapsulating ip-packet to 4, 
     // which indicates "IP in IP" according to RFC 2003
     
