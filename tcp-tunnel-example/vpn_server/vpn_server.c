@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <netinet/in.h>
 
 
 int tun_alloc(char *dev, int flags) {
@@ -94,6 +95,33 @@ int decapsulate_ip(char *buffer, int len) {
 }
 
 int main() {
+  int sock_fd, optval = 1;
+  struct sockaddr_in sockaddr_in;
+  // SOCK_STREAM is TCP, see `man 2 socket`
+  if ( (sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    perror("socket()");
+    exit(1);
+  }
+  // level=SOL_SOCKET: 
+  // manipulates optionals at the sockets API level (as opposed to a 
+  // particular protocol) 
+  // optname=SO_REUSEADDR (int bool): 
+  // avoid EADDRINUSE error on bind(), meaing allows to immediately rebind on 
+  // the ip:port when progra restarts (or ip/portjust got free).
+  // optname=&optval:
+  // Supplies the value for the option SO_REUSEADDR, since the former is a boolean
+  // this is should be 0 or -1.
+  if(setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&optval, sizeof(optval)) < 0) {
+    perror("setsockopt()");
+    exit(1);
+  }
+  printf("Socket created: %d", sock_fd);
+
+  memset(&sockaddr_in, 0, sizeof(sockaddr_in));
+
+}
+
+int old_main() {
   printf("Writing Packet Example.\n");
   printf("Allocating Interface...\n");
   char device_name[] = "mytun2";

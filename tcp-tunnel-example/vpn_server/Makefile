@@ -8,7 +8,7 @@ default: all
 all: Hello run
 
 Hello: vpn_server.c 
-	mkdir -p bin
+	@ mkdir -p bin
 	$(CC) $(CFLAGS) -o bin/vpn_server vpn_server.c
 
 clean veryclean:
