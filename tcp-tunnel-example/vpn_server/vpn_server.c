@@ -117,7 +117,13 @@ int main() {
   }
   printf("Socket created: %d", sock_fd);
 
+  sockaddr_in.sin_family = 42;
+  printf("sockaddr_in: %d\n", sockaddr_in.sin_family);
+  // fills struct with 0 for the length of its self...
+  // effectively zero-ing out struct
   memset(&sockaddr_in, 0, sizeof(sockaddr_in));
+  printf("sockaddr_in: %d\n", sockaddr_in.sin_family);
+
 
 }
 

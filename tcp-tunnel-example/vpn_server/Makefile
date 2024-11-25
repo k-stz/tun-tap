@@ -5,11 +5,14 @@ RM      = rm -f
 
 default: all
 
-all: Hello run
+all: build run
 
-Hello: vpn_server.c 
+build: vpn_server.c 
 	@ mkdir -p bin
 	$(CC) $(CFLAGS) -o bin/vpn_server vpn_server.c
+
+debug: build
+	gdb bin/vpn_server
 
 clean veryclean:
 	$(RM) vpn_server
