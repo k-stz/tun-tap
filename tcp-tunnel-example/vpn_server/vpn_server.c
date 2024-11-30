@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <stdio.h>
@@ -11,7 +12,8 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <netinet/in.h>
-
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 int tun_alloc(char *dev, int flags) {
 
@@ -102,9 +104,9 @@ int main() {
     perror("socket()");
     exit(1);
   }
-  // level=SOL_SOCKET: 
-  // manipulates optionals at the sockets API level (as opposed to a 
+  // manipulates options at the sockets API level (as opposed to a 
   // particular protocol) 
+  // level=SOL_SOCKET: 
   // optname=SO_REUSEADDR (int bool): 
   // avoid EADDRINUSE error on bind(), meaing allows to immediately rebind on 
   // the ip:port when progra restarts (or ip/portjust got free).
@@ -117,14 +119,35 @@ int main() {
   }
   printf("Socket created: %d", sock_fd);
 
-  sockaddr_in.sin_family = 42;
-  printf("sockaddr_in: %d\n", sockaddr_in.sin_family);
   // fills struct with 0 for the length of its self...
   // effectively zero-ing out struct
   memset(&sockaddr_in, 0, sizeof(sockaddr_in));
   printf("sockaddr_in: %d\n", sockaddr_in.sin_family);
 
+  // Define IPv4 socket address
+  sockaddr_in.sin_family = AF_INET;
+  const char* server_ip = "10.0.2.1";
+  sockaddr_in.sin_addr.s_addr = inet_addr(server_ip);
+  sockaddr_in.sin_port = htons(50000);
 
+  printf("binding socket...\n");
+
+  // "bind()" binds the socket to a well-known address
+  if (bind(sock_fd, (struct sockaddr *) &sockaddr_in, sizeof(sockaddr_in))) {
+    perror("bind()");
+  }
+
+  // listen() allows connections to be receved on the socket
+  if (listen(sock_fd, 5) < 0) {
+    perror("listen()");
+    exit(1);
+  }
+  // afterwards each connection can be accepted using accept(),
+  // which will return a new fd for a new socket that is connected to the
+  // client's socket!
+  printf("socket bound to: %s:%d\n", server_ip, 50000);
+  // connect() vs bind() vs listen?
+  sleep(100);
 }
 
 int old_main() {
