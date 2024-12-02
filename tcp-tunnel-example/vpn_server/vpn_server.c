@@ -98,7 +98,7 @@ int decapsulate_ip(char *buffer, int len) {
 
 int main() {
   int sock_fd, optval = 1;
-  struct sockaddr_in sockaddr_in;
+  struct sockaddr_in sockaddr_in, remote;
   // SOCK_STREAM is TCP, see `man 2 socket`
   if ( (sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     perror("socket()");
@@ -142,11 +142,18 @@ int main() {
     perror("listen()");
     exit(1);
   }
-  // afterwards each connection can be accepted using accept(),
-  // which will return a new fd for a new socket that is connected to the
-  // client's socket!
-  printf("socket bound to: %s:%d\n", server_ip, 50000);
-  // connect() vs bind() vs listen?
+  printf("Server: listening on %s:%d \n", inet_ntoa(sockaddr_in.sin_addr), ntohs(sockaddr_in.sin_port));
+
+
+  socklen_t remotelen = sizeof(remote);
+  int client_sock_fd;
+  printf("Blocking waiting for connection... \n");
+  if ((client_sock_fd = accept(sock_fd, (struct sockaddr*)&remote, &remotelen)) < 0) {
+    perror("accept()");
+    exit(1);
+  }
+  printf("SERVER: Client connected from %s:%d\n", inet_ntoa(remote.sin_addr), ntohs(remote.sin_port));
+
   sleep(100);
 }
 
