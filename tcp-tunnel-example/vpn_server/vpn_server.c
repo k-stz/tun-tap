@@ -137,7 +137,7 @@ int main() {
     perror("bind()");
   }
 
-  // listen() allows connections to be receved on the socket
+  // listen() allows connections to be received on the socket
   if (listen(sock_fd, 5) < 0) {
     perror("listen()");
     exit(1);
@@ -153,6 +153,22 @@ int main() {
     exit(1);
   }
   printf("SERVER: Client connected from %s:%d\n", inet_ntoa(remote.sin_addr), ntohs(remote.sin_port));
+
+  // At this point we have connected pair client_sock_fd refers to our client socket which
+  // is connected to a peer socket of the client. Whose AF_INET address is stored in sockaddr remote.
+  // Lets read it
+  uint packet_length;
+  char input_buffer[1500];
+  int nread = read(client_sock_fd, (void *) input_buffer, sizeof(input_buffer));
+  printf("SERVER: read %d bytes from client_socket %s:%d \n", nread, inet_ntoa(remote.sin_addr), ntohs(remote.sin_port));
+  // The input buffer will contain bytes purely the payload of the TCP layer
+  // the layers beneath, tcp, ip and the ethernet frame, will be handled
+  // by the OS!
+  // For example when nread is = 78 bytes, then in wireshark you will see, when
+  // listening on the packet/segment that the payload of the TCP segment is
+  // exactly 78 bytes! 
+  print_buffer(input_buffer, nread, "content:");
+
 
   sleep(100);
 }
