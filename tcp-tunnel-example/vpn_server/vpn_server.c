@@ -139,7 +139,7 @@ int main() {
   if (bind(sock_fd, (struct sockaddr *) &sockaddr_in, sizeof(sockaddr_in))) {
     perror("bind()");
   }
-  printf("SERVER: socket bound to: %s:%d\n", inet_ntoa(remote.sin_addr), ntohs(remote.sin_port));
+  printf("SERVER: socket bound to: %s:%d\n", inet_ntoa(sockaddr_in.sin_addr), ntohs(sockaddr_in.sin_port));
 
   // listen() allows connections to be received on the socket
   if (listen(sock_fd, 5) < 0) {
