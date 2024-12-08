@@ -97,6 +97,8 @@ int decapsulate_ip(char *buffer, int len) {
 }
 
 int main() {
+  printf("process id: %d\n", getpid());
+
   int sock_fd, optval = 1;
   struct sockaddr_in sockaddr_in, remote;
   // SOCK_STREAM is TCP, see `man 2 socket`
@@ -117,7 +119,7 @@ int main() {
     perror("setsockopt()");
     exit(1);
   }
-  printf("Socket created: %d", sock_fd);
+  printf("Socket created. File descriptor: %d\n", sock_fd);
 
   // fills struct with 0 for the length of its self...
   // effectively zero-ing out struct
@@ -133,9 +135,11 @@ int main() {
   printf("binding socket...\n");
 
   // "bind()" binds the socket to a well-known address
+  // which for an AF_INET domain socket is IPv4 Address + Port.
   if (bind(sock_fd, (struct sockaddr *) &sockaddr_in, sizeof(sockaddr_in))) {
     perror("bind()");
   }
+  printf("SERVER: socket bound to: %s:%d\n", inet_ntoa(sockaddr_in.sin_addr), ntohs(sockaddr_in.sin_port));
 
   // listen() allows connections to be received on the socket
   if (listen(sock_fd, 5) < 0) {
