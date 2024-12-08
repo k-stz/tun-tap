@@ -5,6 +5,7 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/socket.h>
 #include <sys/types.h> // ssize_t is defined here
 #include <unistd.h>
 #include <stdlib.h>
@@ -234,7 +235,27 @@ int test_ip_checksum_main() {
   return 0;
 }
 
+void connect_vpn() {
+  struct sockaddr_in remote;
+  remote.sin_family = AF_INET;
+  remote.sin_addr.s_addr = inet_addr("10.0.2.1");
+  remote.sin_port = htons(50000);
+  int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+  int result = connect(socket_fd, (const struct sockaddr *) &remote, sizeof(remote));
+  if (result < 0) {
+    perror("connect()");
+  }
+  printf("Client: writing some data...\n");
+  int nwrite = write(socket_fd, "testing\n", 7);
+  printf("Client: written %d bytes to sock stream\n", nwrite);
+}
+
 int main() {
+  // test writing to vpn_server.c
+  connect_vpn();
+}
+
+int old_main() {
   printf("Writing Packet Example.\n");
   printf("Allocating Interface...\n");
   char device_name[] = "mytun";

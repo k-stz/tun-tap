@@ -169,6 +169,7 @@ int main() {
   // exactly 78 bytes! 
   print_buffer(input_buffer, nread, "content:");
 
+  // Input: will thus be a ip-packet in the payload of the TCP-packet. 
 
   sleep(100);
 }
