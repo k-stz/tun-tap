@@ -235,24 +235,33 @@ int test_ip_checksum_main() {
   return 0;
 }
 
-void connect_vpn() {
+// Returns client socket connecting to vpn
+int connect_vpn(const char *ip_address, int port) {
   struct sockaddr_in remote;
   remote.sin_family = AF_INET;
-  remote.sin_addr.s_addr = inet_addr("10.0.2.1");
-  remote.sin_port = htons(50000);
+  remote.sin_addr.s_addr = inet_addr(ip_address);
+  remote.sin_port = htons(port);
   int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
   int result = connect(socket_fd, (const struct sockaddr *) &remote, sizeof(remote));
   if (result < 0) {
     perror("connect()");
+    printf("Is the target vpn_server running?\n");
+    exit(1);
   }
-  printf("Client: writing some data...\n");
-  int nwrite = write(socket_fd, "testing\n", 7);
-  printf("Client: written %d bytes to sock stream\n", nwrite);
+
+  return socket_fd;
 }
 
 int main() {
   // test writing to vpn_server.c
-  connect_vpn();
+  const char* vpn_server_ip = "10.0.2.1";
+  int vpn_port = 50000;
+  int socket_fd = connect_vpn("10.0.2.1", vpn_port);
+  printf("Client: connected to server %s:%d\n", vpn_server_ip, vpn_port);
+  printf("Client: writing some data...\n");
+  int nwrite = write(socket_fd, "testing\n", 7);
+  printf("Client: written %d bytes to sock stream\n", nwrite);
+
 }
 
 int old_main() {
