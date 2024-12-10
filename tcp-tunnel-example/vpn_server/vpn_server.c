@@ -138,6 +138,8 @@ int main() {
   // which for an AF_INET domain socket is IPv4 Address + Port.
   if (bind(sock_fd, (struct sockaddr *) &sockaddr_in, sizeof(sockaddr_in))) {
     perror("bind()");
+    printf("Did you create the tun device with the address yet?\n");
+    exit(1);
   }
   printf("SERVER: socket bound to: %s:%d\n", inet_ntoa(sockaddr_in.sin_addr), ntohs(sockaddr_in.sin_port));
 
