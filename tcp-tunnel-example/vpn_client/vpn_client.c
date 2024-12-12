@@ -252,7 +252,7 @@ int connect_vpn(const char *ip_address, int port) {
   return socket_fd;
 }
 
-int main() {
+int test_connection() {
   // test writing to vpn_server.c
   const char* vpn_server_ip = "10.0.2.1";
   int vpn_port = 50000;
@@ -261,10 +261,10 @@ int main() {
   printf("Client: writing some data...\n");
   int nwrite = write(socket_fd, "testing\n", 7);
   printf("Client: written %d bytes to sock stream\n", nwrite);
-
+  return 0;
 }
 
-int old_main() {
+int main() {
   printf("Writing Packet Example.\n");
   printf("Allocating Interface...\n");
   char device_name[] = "mytun";
@@ -355,14 +355,18 @@ int old_main() {
     print_buffer(buffer, tunneled_packet_size, "\nBuffer with tunneled packet");
 
 
-    printf("Writing to interface...\n");
-    int nwrite = cwrite(tun_fd, buffer, tunneled_packet_size);
-    
-  
+    //printf("Writing to interface...\n");
+    int vpn_client_socket = connect_vpn("10.0.2.1", 50000);    
+    // Now we write the packet into the socket 
+    int nwrite = cwrite(vpn_client_socket, buffer, tunneled_packet_size);
+    //int nwrite = write(vpn_client_socket, "testing\n", 7);
+
     if (nwrite < 0) {
       perror("writing to interface\n");
     }
-    // printf("tunneled packet written!\n");
+  
+
+    printf("CLIENT: tunneled packet written, size: %d bytes!\n", nwrite);
     // // doesn't seem to cause an endless loop... sleep not needed
     // //
     // printf("sleep 10 after writing packet! (could be endless loop!)\n");
