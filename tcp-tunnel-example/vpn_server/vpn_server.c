@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <bits/types/cookie_io_functions_t.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <stdio.h>
@@ -132,6 +133,21 @@ int read_n(int fd, char *buf, int n) {
 
 
 int main() {
+  // Attach to mytun2
+  printf("Writing Packet Example.\n");
+  printf("Allocating Interface...\n");
+  char device_name[] = "mytun2";
+  int tun_fd;
+  // this will allocate the tun device
+  // IFF_NO_PI will make sure we receive "pure packets" with no leading
+  // packet information bytes (proto)
+  tun_fd = tun_alloc(device_name, IFF_TUN | IFF_NO_PI);
+  if(tun_fd < 0) {
+    perror("Allocating interface");
+    exit(1);
+  }
+  printf("%s allocated successfully\n", device_name);
+
   printf("process id: %d\n", getpid());
 
   int sock_fd, optval = 1;
@@ -215,6 +231,14 @@ int main() {
   //nread = cread(client_sock_fd, input_buffer, ntohs(plength));
   
   printf("SERVER: read %d bytes from the tunneled packet\n", nread);
+  int nwrite;
+  // +20 skips the encapsulating ip header, thus effectively
+  // decapsulating the ip packet!
+  nwrite = write(tun_fd, input_buffer+20, ntohs(plength)-20);
+  if(nwrite < 0) {
+    perror("Decapsulated packet and written to TUN device\n");
+  }
+  printf("SERVER: decapsulated packet (%d bytes) and send over TUN device\n", nwrite);
 
 
   // while ((nread = read(client_sock_fd, input_buffer, 1/*sizeof(input_buffer)*/) > 0)) {
