@@ -96,6 +96,41 @@ int decapsulate_ip(char *buffer, int len) {
   return len - 20;
 }
 
+/**************************************************************************
+ * cread: read routine that checks for errors and exits if an error is    *
+ *        returned.                                                       *
+ **************************************************************************/
+int cread(int fd, char *buf, int n){
+  
+  int nread;
+
+  if((nread=read(fd, buf, n)) < 0){
+    perror("Reading data");
+    exit(1);
+  }
+  return nread;
+}
+
+/**************************************************************************
+ * read_n: ensures we read exactly n bytes, and puts them into "buf".     *
+ *         (unless EOF, of course)                                        *
+ **************************************************************************/
+int read_n(int fd, char *buf, int n) {
+
+  int nread, left = n;
+
+  while(left > 0) {
+    if ((nread = cread(fd, buf, left)) == 0){
+      return 0 ;      
+    }else {
+      left -= nread;
+      buf += nread;
+    }
+  }
+  return n;  
+}
+
+
 int main() {
   printf("process id: %d\n", getpid());
 
@@ -163,17 +198,36 @@ int main() {
   // At this point we have connected pair client_sock_fd refers to our client socket which
   // is connected to a peer socket of the client. Whose AF_INET address is stored in sockaddr remote.
   // Lets read it
-  uint packet_length;
   char input_buffer[1500];
-  int nread = read(client_sock_fd, (void *) input_buffer, sizeof(input_buffer));
-  printf("SERVER: read %d bytes from client_socket %s:%d \n", nread, inet_ntoa(remote.sin_addr), ntohs(remote.sin_port));
+
+  int nread;
+  uint16_t plength;
+  // First send u_short in packet contains the length of the packet to read
+  // "plength"
+  nread = read_n(client_sock_fd, (char *)&plength, sizeof(plength));
+  //nread = read(client_sock_fd, (char *)&plength, sizeof(plength));
+  if (nread < 0) {
+    perror("read plength\n");
+    exit(1);
+  }
+  printf("SERVER: nread = %d after reading plength = %d\n", nread, ntohs(plength));  
+  nread = read_n(client_sock_fd, input_buffer, ntohs(plength));
+  //nread = cread(client_sock_fd, input_buffer, ntohs(plength));
+  
+  printf("SERVER: read %d bytes from the tunneled packet\n", nread);
+
+
+  // while ((nread = read(client_sock_fd, input_buffer, 1/*sizeof(input_buffer)*/) > 0)) {
+  //   printf("SERVER: read %d bytes from client_socket %s:%d \n", nread, inet_ntoa(remote.sin_addr), ntohs(remote.sin_port));
+  //   print_buffer(input_buffer, nread, "content:");
+  // }
   // The input buffer will contain bytes purely the payload of the TCP layer
   // the layers beneath, tcp, ip and the ethernet frame, will be handled
   // by the OS!
   // For example when nread is = 78 bytes, then in wireshark you will see, when
   // listening on the packet/segment that the payload of the TCP segment is
   // exactly 78 bytes! 
-  print_buffer(input_buffer, nread, "content:");
+  print_buffer(input_buffer, nread, "content");
 
   // Input: will thus be a ip-packet in the payload of the TCP-packet. 
 

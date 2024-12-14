@@ -192,7 +192,8 @@ void update_ip_checksum(char *ip_header) {
   original_header[10] = 0;original_header[11] = 0; 
   int osum = compute_checksum((ushort *) original_header);
   if (osum != sum) {
-    print_buffer(original_header, 20, "checksum calc wrong for header");
+    print_buffer(original_header, 20, "checksum calc wrong for header, using osum");
+    *checksum_addr = osum;
   }
   printf("calculated ip checksum Osum: %#04x\n", osum);
   printf("calculated ip checksum mysum: %#04x\n", sum);
@@ -352,25 +353,38 @@ int main() {
     // 2. After it (+sizeof...) write orignal packet in buffer
     memcpy(buffer+sizeof(encapsulating_ip_header), original_packet, sizeof(original_packet));
     
-    print_buffer(buffer, tunneled_packet_size, "\nBuffer with tunneled packet");
+    //print_buffer(buffer, tunneled_packet_size, "\nBuffer with tunneled packet");
 
 
     //printf("Writing to interface...\n");
-    int vpn_client_socket = connect_vpn("10.0.2.1", 50000);    
+    const char* vpn_server_ip = "10.0.2.1";
+    int vpn_port = 50000;
+
+    int vpn_client_socket = connect_vpn(vpn_server_ip, vpn_port);
+    printf("Client: connected to server %s:%d\n", vpn_server_ip, vpn_port);
+
     // Now we write the packet into the socket 
-    int nwrite = cwrite(vpn_client_socket, buffer, tunneled_packet_size);
-    //int nwrite = write(vpn_client_socket, "testing\n", 7);
+    //int nwrite = cwrite(vpn_client_socket, buffer, tunneled_packet_size);
+      //plength = htons(nread);
+      //nwrite = cwrite(net_fd, (char *)&plength, sizeof(plength));
+      //nwrite = cwrite(net_fd, buffer, nread);
+    uint16_t plength = htons(tunneled_packet_size);
+    int nwrite;
+    cwrite(vpn_client_socket, (char *)&plength, sizeof(plength));
+    printf("CLIENT: plength = %d written to socket \n", ntohs(plength));
+    nwrite = cwrite(vpn_client_socket, buffer, tunneled_packet_size);
+     //(vpn_client_socket, message, 7);
 
     if (nwrite < 0) {
       perror("writing to interface\n");
     }
-  
-
     printf("CLIENT: tunneled packet written, size: %d bytes!\n", nwrite);
+    sleep(1000);  
     // // doesn't seem to cause an endless loop... sleep not needed
     // //
     // printf("sleep 10 after writing packet! (could be endless loop!)\n");
-    // sleep(10);
+    sleep(10);
+    exit(0);
   }
 }
 
