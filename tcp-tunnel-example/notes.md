@@ -1,7 +1,14 @@
 # Example goal:
 my-packet -> via routing(10.0.0.1/24) -> vpn-client(encapsulate) --tcp-> vpn-server (decapsulate) -> release raw my-packet
 
-
+# Instructions:
+1. create the tun-devices and attach ips to them
+`bash create_named_tuntap_devices.sh`
+Now you should have mytun and mytun2 devices with IP 10.0.0.1 and 10.0.2.1 respectively
+2. Start the vpn_server `cd tun-tap/tcp-tunnel-example/vpn_server` and run it with `make`. It will attach to mytun2 and wait for incoming packets
+3. Run the vpn_client `cd tun-tap/tcp-tunnel-example/vpn_client` and run `make` to start it. It will attach to the `mytun` network interface and block waiting for incoming packets. 
+4. Now send a packet to the `mytun` interface by pinging an ip from its subnet, not its actual ip address or it will get routed to `loopback` due to kernel default routes (see `ip route show table local`). Anyway send an single ICMP packet to it with: `ping 10.0.0.2 -c1`
+5. Look at the output of the vpn_client receving the packet, encapsulating it, esablishing a tcp connection to the vpn_server and sending it there. The vpn_server then receives it, decapsulates it and releases it to the network by writing it to the socket attached to the `mytun2` interface
 
 # Debugging hints
 
